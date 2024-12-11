@@ -392,4 +392,143 @@ export const LiveCollaborationTrigger = ({
   );
 };
 
+export const SyncGithub = () => {
+  return (
+    <DropdownMenuItem
+      data-testid="sync-github-button"
+      icon={GithubIcon}
+      onSelect={async () => {
+        let github_pat = localStorage.getItem("github_pat");
+        const data = localStorage.getItem("excalidraw");
+
+        if (!github_pat) {
+          github_pat = prompt("Enter your Github Personal Access Token");
+          localStorage.setItem("github_pat", github_pat ?? "");
+        } else {
+          const GITHUB_API_URL = "https://api.github.com";
+          const GITHUB_API_VERSION = "2022-11-28";
+          const GITHUB_REPO = "excalisync-data";
+          const headers = new Headers({
+            Accept: "application/vnd.github+json",
+            Authorization: `Bearer ${github_pat}`,
+            "X-GitHub-Api-Version": GITHUB_API_VERSION,
+          });
+          const GITHUB_OWNER = await (
+            await fetch(`${GITHUB_API_URL}/user`, {
+              headers,
+            })
+          ).json();
+          const create_repository = await fetch(
+            `${GITHUB_API_URL}/user/repos`,
+            {
+              method: "POST",
+              headers,
+              body: JSON.stringify({
+                name: GITHUB_REPO,
+                description:
+                  "Automatically created by ExcaliSync to save Excalidraw data",
+                private: true,
+                is_template: false,
+              }),
+            },
+          );
+          console.log(await create_repository.json());
+          const get_file = await (
+            await fetch(
+              `${GITHUB_API_URL}/repos/${GITHUB_OWNER.login}/${GITHUB_REPO}/contents/data.json`,
+              {
+                headers,
+              },
+            )
+          ).json();
+          const upload_data = await (
+            await fetch(
+              `${GITHUB_API_URL}/repos/${GITHUB_OWNER.login}/${GITHUB_REPO}/contents/data.json`,
+              {
+                method: "PUT",
+                headers,
+                body: JSON.stringify({
+                  committer: {
+                    name: GITHUB_OWNER.name,
+                    email: GITHUB_OWNER.email,
+                  },
+                  message: `Synced at ${new Date().toISOString()}`,
+                  content: btoa(JSON.stringify(data)),
+                  sha: get_file.sha,
+                }),
+              },
+            )
+          ).json();
+          console.log(upload_data);
+          alert(JSON.stringify(upload_data));
+        }
+      }}
+    >
+      Sync to Github
+    </DropdownMenuItem>
+  );
+};
+
+export const GetDataFromGithub = () => {
+  return (
+    <DropdownMenuItem
+      data-testid="sync-github-button"
+      icon={GithubIcon}
+      onSelect={async () => {
+        let github_pat = localStorage.getItem("github_pat");
+        const data = localStorage.getItem("excalidraw");
+
+        if (!github_pat) {
+          github_pat = prompt("Enter your Github Personal Access Token");
+          localStorage.setItem("github_pat", github_pat ?? "");
+        } else {
+          const GITHUB_API_URL = "https://api.github.com";
+          const GITHUB_API_VERSION = "2022-11-28";
+          const GITHUB_REPO = "excalisync-data";
+          const headers = new Headers({
+            Accept: "application/vnd.github+json",
+            Authorization: `Bearer ${github_pat}`,
+            "X-GitHub-Api-Version": GITHUB_API_VERSION,
+          });
+          const GITHUB_OWNER = await (
+            await fetch(`${GITHUB_API_URL}/user`, {
+              headers,
+            })
+          ).json();
+          const create_repository = await fetch(
+            `${GITHUB_API_URL}/user/repos`,
+            {
+              method: "POST",
+              headers,
+              body: JSON.stringify({
+                name: GITHUB_REPO,
+                description:
+                  "Automatically created by ExcaliSync to save Excalidraw data",
+                private: true,
+                is_template: false,
+              }),
+            },
+          );
+          console.log(await create_repository.json());
+          const get_file = await (
+            await fetch(
+              `${GITHUB_API_URL}/repos/${GITHUB_OWNER.login}/${GITHUB_REPO}/contents/data.json`,
+              {
+                headers,
+              },
+            )
+          ).json();
+          const data = get_file.content;
+          const decoded_data = atob(data);
+          console.log(decoded_data);
+          localStorage.setItem("excalidraw", decoded_data);
+          alert("Data successfully fetched from Github");
+        }
+      }}
+    >
+      Download from Github
+    </DropdownMenuItem>
+  );
+};
+
 LiveCollaborationTrigger.displayName = "LiveCollaborationTrigger";
